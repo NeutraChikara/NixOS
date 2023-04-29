@@ -2,9 +2,10 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 let
-  home-manager = builtins.fetchTarball "https://github.com/nix-community/home-manager/archive/release-22.11.tar.gz";
+  home-manager = builtins.fetchTarball https://github.com/nix-community/home-manager/archive/release-22.11.tar.gz;
+  nixos-unstable = fetchTarball https://nixos.org/channels/nixos-unstable/nixexprs.tar.xz;
 in
 {
   imports =
@@ -12,6 +13,14 @@ in
       ./hardware-configuration.nix
       (import "${home-manager}/nixos")
     ];
+
+  nixpkgs.config = {
+    packageOverrides = pkgs: {
+      unstable = import nixos-unstable { 
+        config = config.nixpkgs.config; 
+      };
+    };
+  };
 
   # Bootloader.
   boot.loader.grub.enable = true;
@@ -54,9 +63,9 @@ in
   services.xserver.desktopManager.gnome.enable = true;
 
   services.gnome.core-utilities.enable = false;
-  services.xserver.excludePackages = [ pkgs.xterm ];
+  services.xserver.excludePackages = [ pkgs.unstable.xterm ];
 
-  # TODO Default packages
+  # TODO Default packages from GNOME etc.
 
   # Configure keymap in X11
   services.xserver = {
@@ -92,48 +101,52 @@ in
     isNormalUser = true;
     description = "henrik";
     extraGroups = [ "networkmanager" "wheel" ];
-    packages = with pkgs; [
-    #  firefox
-    #  thunderbird
-    ];
   };
 
+  nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
+     "slack"
+  ];
+  
   # List packages installed in system profile. To search, run:
   # $ nix search wget
-  environment.systemPackages = with pkgs; [
+  environment.systemPackages = with pkgs.unstable; [
      docker-client
-     epiphany
      jetbrains.idea-community
      maven
      subversion
      gnome.evince
      gnome.nautilus
+     slack
   ];
 
   programs = {
      ssh.enableAskPassword = false;
      java = {
         enable = true;
-        package = pkgs.jdk8_headless;
+        package = pkgs.unstable.jdk8_headless;
      };
   };
 
-  fonts.fonts = with pkgs; [ jetbrains-mono ];
+  fonts.fonts = with pkgs.unstable; [ jetbrains-mono ];
 
   home-manager.users.henrik = {
      home.stateVersion = "22.11";
      programs = {
+	firefox = {
+	   enable = true;
+	   package = pkgs.unstable.firefox;
+	};
         git = {
            enable = true;
+	   package = pkgs.unstable.git.override { withLibsecret = true; };
            userName = "Henrik Eidnes Nielsen";
-           userEmail = "henrikeidnes@stofanet.dk";
-           package = pkgs.git.override { withLibsecret = true; };
+           userEmail = "henrikeidnes@stofanet.dk";          
            extraConfig.credential.helper = "libsecret";
         };
         vscode = {
            enable = true;
-           package = pkgs.vscodium;
-           extensions = with pkgs.vscode-extensions; [
+           package = pkgs.unstable.vscodium;
+           extensions = with pkgs.unstable.vscode-extensions; [
               bbenoist.nix
            ];
         };
@@ -180,5 +193,4 @@ in
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "22.11"; # Did you read the comment?
   system.autoUpgrade.enable = true;
-  system.autoUpgrade.channel = "https://nixos.org/channels/nixos-22.11";
 }
