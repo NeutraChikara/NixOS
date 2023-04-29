@@ -4,7 +4,7 @@
 
 { config, pkgs, ... }:
 let
-  home-manager = builtins.fetchTarball "https://github.com/nix-community/home-manager/archive/master.tar.gz";
+  home-manager = builtins.fetchTarball "https://github.com/nix-community/home-manager/archive/release-22.11.tar.gz";
 in
 {
   imports =
@@ -121,7 +121,7 @@ in
   fonts.fonts = with pkgs; [ jetbrains-mono ];
 
   home-manager.users.henrik = {
-     home.stateVersion = "23.05";
+     home.stateVersion = "22.11";
      programs = {
         git = {
            enable = true;
@@ -179,4 +179,6 @@ in
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "22.11"; # Did you read the comment?
+  system.autoUpgrade.enable = true;
+  system.autoUpgrade.channel = "https://nixos.org/channels/nixos-22.11";
 }
